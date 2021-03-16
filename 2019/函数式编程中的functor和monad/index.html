@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+  <link href="//cdn.jsdelivr.net/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+  
+
+<link href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.2/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="编程,函数式," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="以前接触函数式编程的时候听过functor（函子）和monad（单子），但也仅仅是了解，不常使用或者不知觉可能就在用了。后来学习Rust后发现它也将这套函数式的东西融入了语法当中，也让我加深了使用和理解。 要想了解什么是functor和monad，得先了解范畴论。">
+<meta name="keywords" content="编程,函数式">
+<meta property="og:type" content="article">
+<meta property="og:title" content="函数式编程中的functor和monad">
+<meta property="og:url" content="http://notes.jimliang.com/2019/函数式编程中的functor和monad/index.html">
+<meta property="og:site_name" content="Jim&#39;s Notes">
+<meta property="og:description" content="以前接触函数式编程的时候听过functor（函子）和monad（单子），但也仅仅是了解，不常使用或者不知觉可能就在用了。后来学习Rust后发现它也将这套函数式的东西融入了语法当中，也让我加深了使用和理解。 要想了解什么是functor和monad，得先了解范畴论。">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2021-03-16T06:48:45.975Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="函数式编程中的functor和monad">
+<meta name="twitter:description" content="以前接触函数式编程的时候听过functor（函子）和monad（单子），但也仅仅是了解，不常使用或者不知觉可能就在用了。后来学习Rust后发现它也将这套函数式的东西融入了语法当中，也让我加深了使用和理解。 要想了解什么是functor和monad，得先了解范畴论。">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://notes.jimliang.com/2019/函数式编程中的functor和monad/"/>
+
+
+
+
+
+  <title>函数式编程中的functor和monad | Jim's Notes</title>
+  
+
+
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-80229121-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+
+
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Jim's Notes</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <h1 class="site-subtitle" itemprop="description">Follow your heart</h1>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://notes.jimliang.com/2019/函数式编程中的functor和monad/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Jimliang">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="https://avatars1.githubusercontent.com/u/5828650?v=3&u=3612a2f967b6960d7bca6f747a79c1ff7f90d5e1&s=140">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Jim's Notes">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h2 class="post-title" itemprop="name headline">函数式编程中的functor和monad</h2>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-27T12:27:49+08:00">
+                2019-03-27
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/函数式编程中的functor和monad/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count gitment-comments-count" data-xid="/2019/函数式编程中的functor和monad/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+             <span id="/2019/函数式编程中的functor和monad/" class="leancloud_visitors" data-flag-title="函数式编程中的functor和monad">
+               <span class="post-meta-divider">|</span>
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               
+                 <span class="post-meta-item-text">阅读次数&#58;</span>
+               
+                 <span class="leancloud-visitors-count"></span>
+             </span>
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>以前接触函数式编程的时候听过functor（函子）和monad（单子），但也仅仅是了解，不常使用或者不知觉可能就在用了。后来学习Rust后发现它也将这套函数式的东西融入了语法当中，也让我加深了使用和理解。</p>
+<p>要想了解什么是functor和monad，得先了解范畴论。</p>
+<a id="more"></a>
+<h2 id="范畴论基本概念"><a href="#范畴论基本概念" class="headerlink" title="范畴论基本概念"></a>范畴论基本概念</h2><p>我第一次听说范畴论（category theory）的时候被这高大上的名字吓到了，听起来像一是门复杂的学科。</p>
+<p>函数式编程起源于范畴学，要想理解函数式编程，就要理解范畴学。</p>
+<p>一个“范畴（category）”主要包含两个玩意</p>
+<ul>
+<li>东西（object）</li>
+<li>映射关系（morphism）</li>
+</ul>
+<p>范畴学抽象到足以模拟任何事物，不过目前我们只关心的是类型和函数。我们可以把“范畴”理解成一个盒子，里面包含一个值和映射关系。</p>
+<p>在Rust的标准库有这样一种结构，它用来表示值不存在的可能，同时也是可以看成是范畴的盒子。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="class"><span class="keyword">enum</span> <span class="title">Option</span></span>&lt;T&gt; &#123;</span><br><span class="line">    <span class="literal">None</span>,</span><br><span class="line">    <span class="literal">Some</span>(T),</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> <span class="keyword">mut</span> a = <span class="literal">Some</span>(<span class="number">2</span>);</span><br><span class="line"><span class="built_in">println!</span>(a.map(|i| i + <span class="number">3</span>));</span><br><span class="line"><span class="comment">//=&gt; Some(5)</span></span><br></pre></td></tr></table></figure>
+<p>在Javascript中，Promise也可以看成一个范畴。<code>then</code>返回了一个新的Promise，这个Promise所包裹的值是全新的值。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> a = <span class="built_in">Promise</span>.resolve(<span class="number">2</span>)</span><br><span class="line"><span class="keyword">const</span> b = a.then(|i| i + <span class="number">3</span>)</span><br></pre></td></tr></table></figure>
+<h2 id="functor-函子"><a href="#functor-函子" class="headerlink" title="functor(函子)"></a>functor(函子)</h2><p>当一个值被一个盒子包裹时，你不能简单使用函数应用到这个值。</p>
+<p>这就需要<code>map</code>的用途(<code>Option::map</code> in Rust)，<code>map</code>知道如何将普通函数应用到一个盒子中，比如上述<code>Option</code>的例子，通过接收一个外部指定的函数，返回一个新的函子，里面的值可能是被函数处理过的。当这个函子为<code>None</code>时直接返回<code>None</code>。</p>
+<p>函子就是让我们可以通过普通的函数将一个范畴转成另一个范畴。函数式编程里面的运算，都是通过函子完成，它的运算不直接针对值，而是针对这个值的盒子。我们甚至可以通过多种运算，衍生出多种函子，通过这些函子来解决实际问题。</p>
+<p>用Javascript实现：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Container</span> </span>&#123;</span><br><span class="line">  <span class="keyword">constructor</span>(x) &#123;</span><br><span class="line">    <span class="keyword">this</span>._value = x</span><br><span class="line">  &#125;</span><br><span class="line">  map(f) &#123;</span><br><span class="line">    <span class="keyword">return</span> Container.of(f(<span class="keyword">this</span>._value))</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">of</span>(x) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> Container(x)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">Container.of(<span class="number">2</span>).map(<span class="function"><span class="params">two</span> =&gt;</span> two + <span class="number">2</span>)</span><br><span class="line"><span class="comment">//=&gt; Container(4)</span></span><br></pre></td></tr></table></figure>
+<h3 id="Maybe函子"><a href="#Maybe函子" class="headerlink" title="Maybe函子"></a>Maybe函子</h3><figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">class Maybe &#123;</span><br><span class="line">  constructor(x) &#123;</span><br><span class="line">    this._value = x</span><br><span class="line">  &#125;</span><br><span class="line">  isNothing() &#123;</span><br><span class="line">	<span class="keyword">return</span> !!this._value</span><br><span class="line">  &#125;</span><br><span class="line">  map(f) &#123;</span><br><span class="line">    <span class="keyword">return</span> this.isNothing() ? Maybe.of(null) : Maybe.of(f(this._value))</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">static</span> of(x) &#123;</span><br><span class="line">    <span class="keyword">return</span> new Maybe(x)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">Maybe.of(null).map(two =&gt; two + <span class="number">2</span>)</span><br><span class="line"><span class="comment">//=&gt; Maybe(null)</span></span><br></pre></td></tr></table></figure>
+<p>Maybe看起来跟Container类似，不同的是，Maybe会先检查自己的值是否为空，然后再调用传进来的函数。这样就能避免处理空值的情况了。</p>
+<p>Rust中的<code>Option::map</code>就体现了Maybe函子。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="function"><span class="keyword">fn</span> <span class="title">map</span></span>&lt;U, F: <span class="built_in">FnOnce</span>(T) -&gt; U&gt;(<span class="keyword">self</span>, f: F) -&gt; <span class="built_in">Option</span>&lt;U&gt; &#123;</span><br><span class="line">    <span class="keyword">match</span> <span class="keyword">self</span> &#123;</span><br><span class="line">        <span class="literal">Some</span>(x) =&gt; <span class="literal">Some</span>(f(x)),</span><br><span class="line">        <span class="literal">None</span> =&gt; <span class="literal">None</span>,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="Either函子"><a href="#Either函子" class="headerlink" title="Either函子"></a>Either函子</h3><figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Either</span> </span>&#123;</span><br><span class="line">  <span class="keyword">constructor</span>(x, y) &#123;</span><br><span class="line">    <span class="keyword">this</span>._x = x</span><br><span class="line">    <span class="keyword">this</span>._y = y</span><br><span class="line">  &#125;</span><br><span class="line">  map(f) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>._x ? Either.of(<span class="keyword">this</span>._x, <span class="keyword">this</span>._y) : Either.of(<span class="keyword">this</span>._x, f(<span class="keyword">this</span>._y))</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">static</span> <span class="keyword">of</span>(x, y) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> Either(x, y)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">Either.of(<span class="literal">null</span>, <span class="number">2</span>).map(<span class="function"><span class="params">two</span> =&gt;</span> two + <span class="number">1</span>)</span><br><span class="line"><span class="comment">//=&gt; Either &#123; _x: null, _y: 3 &#125;</span></span><br></pre></td></tr></table></figure>
+<p>Either函子包含了左值（Left）和右值(Right)，Left无视了<code>map</code>的请求，Right就是一个Container，这样的优势在于Left可以内部嵌入一个错误消息。所以比较常用的用途是用来代替try catch。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">parseJSON</span>(<span class="params">json</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> Either.of(<span class="literal">null</span>, <span class="built_in">JSON</span>.parse(json));</span><br><span class="line">  &#125; <span class="keyword">catch</span> (e) &#123;</span><br><span class="line">    <span class="keyword">return</span> Either.of(e, <span class="literal">null</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>Rust标准库里的<code>Rusult</code>就很好的利用了Either。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="class"><span class="keyword">enum</span> <span class="title">Result</span></span>&lt;T, E&gt; &#123;</span><br><span class="line">    <span class="literal">Ok</span>(T),</span><br><span class="line">    <span class="literal">Err</span>(E),</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">use</span> std::num::ParseIntError;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">fn</span> <span class="title">double_number</span></span>(number_str: &amp;<span class="built_in">str</span>) -&gt; <span class="built_in">Result</span>&lt;<span class="built_in">i32</span>, ParseIntError&gt; &#123;</span><br><span class="line">    number_str.parse::&lt;<span class="built_in">i32</span>&gt;().map(|n| <span class="number">2</span> * n)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">fn</span> <span class="title">main</span></span>() &#123;</span><br><span class="line">    <span class="keyword">match</span> double_number(<span class="string">"10"</span>) &#123;</span><br><span class="line">        <span class="literal">Ok</span>(n) =&gt; <span class="built_in">assert_eq!</span>(n, <span class="number">10</span>),</span><br><span class="line">        <span class="literal">Err</span>(err) =&gt; <span class="built_in">println!</span>(<span class="string">"Error: &#123;:?&#125;"</span>, err),</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>现在想想，Promise里你能看到Either的影子吗？</p>
+<h3 id="applicative函子"><a href="#applicative函子" class="headerlink" title="applicative函子"></a>applicative函子</h3><p>applicative函子里面包裹的值是一个函数，它定义了一个<code>ap</code>函数，能够把一个functor的函数值应用到另一个functor的值上。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Ap</span> </span>&#123;</span><br><span class="line">  ap(F) &#123;</span><br><span class="line">    <span class="keyword">return</span> Ap.of(<span class="keyword">this</span>.val(F.val));</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">Ap.of(<span class="function"><span class="params">two</span> =&gt;</span> two + <span class="number">2</span>).ap(Container.of(<span class="number">2</span>))</span><br><span class="line"><span class="comment">//=&gt; Ap(4)</span></span><br></pre></td></tr></table></figure>
+<h2 id="monad（单子）"><a href="#monad（单子）" class="headerlink" title="monad（单子）"></a>monad（单子）</h2><p>函子funtor是将一个普通函数应用到包裹的值上，而单子monad则是将一个返回包裹值的函数应用到一个被包裹的值上。听起来有点拗口，这里举个例子。</p>
+<p><code>Option::and_then</code>，在某些语言里也叫<code>flatmap</code>。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">pub</span> <span class="function"><span class="keyword">fn</span> <span class="title">and_then</span></span>&lt;U, F: <span class="built_in">FnOnce</span>(T) -&gt; <span class="built_in">Option</span>&lt;U&gt;&gt;(<span class="keyword">self</span>, f: F) -&gt; <span class="built_in">Option</span>&lt;U&gt; &#123;</span><br><span class="line">    <span class="keyword">match</span> <span class="keyword">self</span> &#123;</span><br><span class="line">        <span class="literal">Some</span>(x) =&gt; f(x),</span><br><span class="line">        <span class="literal">None</span> =&gt; <span class="literal">None</span>,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>与<code>Option::map</code>相比，map接收的函数返回的是具体的值，而and_then的则是一个Option，这样就出现了两层相同类型的嵌套，这种结合的能力，functor之间的联合，就是monad之所以成为monad的原因。</p>
+<p>Rust的<code>Iterator</code>也是很好的实现了<a href="https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.flat_map" target="_blank" rel="noopener"><code>flat_map</code></a>。</p>
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> words = [<span class="string">"alpha"</span>, <span class="string">"beta"</span>, <span class="string">"gamma"</span>];</span><br><span class="line"></span><br><span class="line"><span class="comment">// chars() 返回一个iterator，iterator也是一个函子</span></span><br><span class="line"><span class="keyword">let</span> merged: <span class="built_in">String</span> = words.iter()</span><br><span class="line">                          .flat_map(|s| s.chars())</span><br><span class="line">                          .collect();</span><br><span class="line"><span class="built_in">assert_eq!</span>(merged, <span class="string">"alphabetagamma"</span>);</span><br></pre></td></tr></table></figure>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>虽然Javascript在模拟Haskell或者Rust这类语言的函数式语法特性比较笨拙，当然Javascript很多东西都简单为主，但函数式编程本身蕴含很多有趣的设计理念是值得探讨的。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://zh.wikipedia.org/zh-hans/%E8%8C%83%E7%95%B4%E8%AE%BA" target="_blank" rel="noopener">维基百科-范畴学</a><br><a href="http://www.ruanyifeng.com/blog/2017/02/fp-tutorial.html" target="_blank" rel="noopener">阮一峰-函数式编程入门教程</a><br><a href="https://llh911001.gitbooks.io/mostly-adequate-guide-chinese/content/" target="_blank" rel="noopener">JS函数式编程指南</a><br><a href="https://blog.oyanglul.us/grokking-monad/" target="_blank" rel="noopener">范畴学装逼指南</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/编程/" rel="tag"># 编程</a>
+          
+            <a href="/tags/函数式/" rel="tag"># 函数式</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/分享一个AI编程游戏HaliteIII/" rel="next" title="分享一个AI编程游戏HaliteIII">
+                <i class="fa fa-chevron-left"></i> 分享一个AI编程游戏HaliteIII
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/Rust解leecode技术小总结/" rel="prev" title="Rust解leecode技术小总结">
+                Rust解leecode技术小总结 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="https://avatars1.githubusercontent.com/u/5828650?v=3&u=3612a2f967b6960d7bca6f747a79c1ff7f90d5e1&s=140"
+                alt="Jimliang" />
+            
+              <p class="site-author-name" itemprop="name">Jimliang</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">13</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">分类</span>
+                
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-name">标签</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/jimliang" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="http://weibo.com/u/1860417617" target="_blank" title="Weibo">
+                      
+                        <i class="fa fa-fw fa-Weibo"></i>Weibo</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#范畴论基本概念"><span class="nav-number">1.</span> <span class="nav-text">范畴论基本概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#functor-函子"><span class="nav-number">2.</span> <span class="nav-text">functor(函子)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Maybe函子"><span class="nav-number">2.1.</span> <span class="nav-text">Maybe函子</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Either函子"><span class="nav-number">2.2.</span> <span class="nav-text">Either函子</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#applicative函子"><span class="nav-number">2.3.</span> <span class="nav-text">applicative函子</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#monad（单子）"><span class="nav-number">3.</span> <span class="nav-text">monad（单子）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#总结"><span class="nav-number">3.1.</span> <span class="nav-text">总结</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">4.</span> <span class="nav-text">参考</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Jimliang</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="//cdn.bootcss.com/jquery/2.1.3/jquery.min.js"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="//cdn.jsdelivr.net/fastclick/1.0.6/fastclick.min.js"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="//cdn.jsdelivr.net/jquery.lazyload/1.9.3/jquery.lazyload.min.js"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="//cdn.jsdelivr.net/velocity/1.2.3/velocity.min.js"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="//cdn.jsdelivr.net/velocity/1.2.3/velocity.ui.min.js"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="//cdn.jsdelivr.net/fancybox/2.1.5/jquery.fancybox.pack.js"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+<!-- LOCAL: You can save these files to your site and update links -->
+    
+        
+        <link rel="stylesheet" href="https://aimingoo.github.io/gitmint/style/default.css">
+        <script src="https://aimingoo.github.io/gitmint/dist/gitmint.browser.js"></script>
+    
+<!-- END LOCAL -->
+
+    
+      <style>
+        a.gitment-editor-footer-tip { display: none; }
+        .gitment-container.gitment-footer-container { display: none; }
+      </style>
+    
+
+    
+      <script type="text/javascript">
+      function renderGitment(){
+        var gitment = new Gitmint({
+            // id: window.location.pathname,
+            id: '函数式编程中的functor和monad',
+            owner: 'jimliang',
+            repo: 'blog',
+            
+            lang: "" || navigator.language || navigator.systemLanguage || navigator.userLanguage,
+            
+            oauth: {
+            
+            
+                client_secret: 'd655809b191bd1ffb098c1fb41226f063ac843e1',
+            
+                client_id: '955df6f79941fe0bdba6'
+            }});
+        gitment.render('gitment-container');
+      }
+
+      
+      renderGitment();
+      
+      </script>
+    
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.4.js"></script>
+  <script>AV.initialize("gxDGv7KPagvp4nfO3dfoD4jV-gzGzoHsz", "HDUCdYzoRk5H0etKH9nmqY2y");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
